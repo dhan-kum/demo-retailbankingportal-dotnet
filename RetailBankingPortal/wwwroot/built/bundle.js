@@ -71,14 +71,19 @@
                 amount: amount
             })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Transfer failed');
+            }
+            return response.json();
+        })
         .then(data => {
             alert(data.message);
             window.location.reload();
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('Transfer failed');
+            alert('Transfer failed: ' + error.message);
         });
     };
 })();

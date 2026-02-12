@@ -4,7 +4,7 @@ using System.Text;
 
 namespace RetailBankingPortal.Services;
 
-public class ConsumerService
+public class ConsumerService : IDisposable
 {
     private readonly ILogger<ConsumerService> _logger;
     private IConnection? _connection;

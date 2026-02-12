@@ -62,14 +62,43 @@ public class BankAccountsController : ControllerBase
     [HttpPost("logmessage")]
     public IActionResult LogMessage([FromQuery] string logmsg)
     {
-        _logger.LogInformation("Log message: {Message}", logmsg);
+        if (string.IsNullOrWhiteSpace(logmsg))
+        {
+            return BadRequest(new { message = "Log message cannot be empty" });
+        }
+        
+        // Sanitize input to prevent log injection
+        var sanitized = logmsg.Replace("\n", " ").Replace("\r", " ");
+        _logger.LogInformation("User log message: {Message}", sanitized);
         return Ok(new { message = "Message logged" });
     }
 
     [HttpGet("createzip")]
     public async Task<IActionResult> CreateZip([FromQuery] string sourceDir, [FromQuery] string zipFile)
     {
-        var result = await _fileService.CreateZipFile(sourceDir, zipFile);
+        // Validate paths to prevent directory traversal attacks
+        if (string.IsNullOrWhiteSpace(sourceDir) || string.IsNullOrWhiteSpace(zipFile))
+        {
+            return BadRequest(new { message = "Source directory and zip file path are required" });
+        }
+        
+        // Prevent path traversal
+        if (sourceDir.Contains("..") || zipFile.Contains(".."))
+        {
+            return BadRequest(new { message = "Invalid path: path traversal not allowed" });
+        }
+        
+        // Restrict to specific allowed directory
+        var baseDir = Path.Combine(Directory.GetCurrentDirectory(), "temp");
+        var fullSourcePath = Path.GetFullPath(Path.Combine(baseDir, sourceDir));
+        var fullZipPath = Path.GetFullPath(Path.Combine(baseDir, zipFile));
+        
+        if (!fullSourcePath.StartsWith(baseDir) || !fullZipPath.StartsWith(baseDir))
+        {
+            return BadRequest(new { message = "Invalid path: access denied" });
+        }
+        
+        var result = await _fileService.CreateZipFile(fullSourcePath, fullZipPath);
         if (result)
         {
             return Ok(new { message = "ZIP file created successfully" });
