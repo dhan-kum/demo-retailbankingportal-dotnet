@@ -15,7 +15,7 @@ builder.Services.AddDbContext<BankingDbContext>(options =>
 // Register services
 builder.Services.AddScoped<TransferService>();
 builder.Services.AddScoped<FileService>();
-builder.Services.AddSingleton<ConsumerService>();
+builder.Services.AddScoped<ConsumerService>();
 
 var app = builder.Build();
 

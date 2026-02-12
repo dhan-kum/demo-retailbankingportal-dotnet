@@ -82,28 +82,31 @@ public class BankAccountsController : ControllerBase
             return BadRequest(new { message = "Source directory and zip file path are required" });
         }
         
-        // Prevent path traversal
-        if (sourceDir.Contains("..") || zipFile.Contains(".."))
+        try
         {
-            return BadRequest(new { message = "Invalid path: path traversal not allowed" });
+            // Restrict to specific allowed directory
+            var baseDir = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "temp"));
+            var fullSourcePath = Path.GetFullPath(Path.Combine(baseDir, sourceDir));
+            var fullZipPath = Path.GetFullPath(Path.Combine(baseDir, zipFile));
+            
+            // Verify paths are within the allowed base directory (case-insensitive for cross-platform support)
+            if (!fullSourcePath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase) || 
+                !fullZipPath.StartsWith(baseDir, StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { message = "Invalid path: access denied" });
+            }
+            
+            var result = await _fileService.CreateZipFile(fullSourcePath, fullZipPath);
+            if (result)
+            {
+                return Ok(new { message = "ZIP file created successfully" });
+            }
+            return BadRequest(new { message = "Failed to create ZIP file" });
         }
-        
-        // Restrict to specific allowed directory
-        var baseDir = Path.Combine(Directory.GetCurrentDirectory(), "temp");
-        var fullSourcePath = Path.GetFullPath(Path.Combine(baseDir, sourceDir));
-        var fullZipPath = Path.GetFullPath(Path.Combine(baseDir, zipFile));
-        
-        if (!fullSourcePath.StartsWith(baseDir) || !fullZipPath.StartsWith(baseDir))
+        catch (ArgumentException)
         {
-            return BadRequest(new { message = "Invalid path: access denied" });
+            return BadRequest(new { message = "Invalid path format" });
         }
-        
-        var result = await _fileService.CreateZipFile(fullSourcePath, fullZipPath);
-        if (result)
-        {
-            return Ok(new { message = "ZIP file created successfully" });
-        }
-        return BadRequest(new { message = "Failed to create ZIP file" });
     }
 
     [HttpGet("connect")]

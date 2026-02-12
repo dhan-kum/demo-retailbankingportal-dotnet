@@ -19,7 +19,12 @@ public class ConsumerService : IDisposable
     {
         try
         {
-            var factory = new ConnectionFactory { HostName = hostName };
+            var factory = new ConnectionFactory 
+            { 
+                HostName = hostName,
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
+            };
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
 
